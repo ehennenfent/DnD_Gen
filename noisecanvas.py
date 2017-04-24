@@ -17,6 +17,6 @@ r, g, b = 255, 255, 255
 for x in range(canvas_width):
     for y in range(canvas_height):
         scale = (snoise2(x / freq, y / freq) + 1) / 2
-        img.put("#%02x%02x%02x" % (r*scale,g*scale,b*scale), (x,y))
+        img.put("#%02x%02x%02x" % (int(r*scale),int(g*scale),int(b*scale)), (x,y))
 
 mainloop()
