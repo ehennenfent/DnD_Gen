@@ -7,7 +7,7 @@ from colorsys import hsv_to_rgb
 from random import randint
 
 canvas_width = 512
-canvas_height = 512
+canvas_height = canvas_width
 freq = canvas_width / 2
 num_poi = int(256 * math.log(max(canvas_width, canvas_height), 2))
 water_threshhold = 0.9
@@ -36,6 +36,17 @@ def get_color(height, temperature, water):
 def simplex_wrapper(_x, _y, offset):
     return (snoise2((_x + offset) / freq, (_y + offset) / freq) + 1) / 2
 
+def get_centroid(_region):
+    _newx = 0
+    _newy = 0
+    for _point in _region:
+        _point = vor.vertices[_point]
+        _newx += _point[0]
+        _newy += _point[1]
+    _newx /= len(_region)
+    _newy /= len(_region)
+    return _newx, _newy
+
 master = Tk()
 
 
@@ -56,12 +67,6 @@ for x in range(canvas_width):
         temperature_map[x][y] = min(1, max(0, (tScale*.6 + .3) - 0.5*(dist(0, y, 0, canvas_height/2)/(canvas_height))))
         water_map[x][y] = min(1, wScale * .7 + (dist(x, y, canvas_width/2, canvas_height/2))/(canvas_width))
 
-print("Rendering Bitmap")
-for x in range(canvas_width):
-    for y in range(canvas_height):
-        r, g, b = get_color(heightmap[x][y], temperature_map[x][y], water_map[x][y])
-        img.put("#%02x%02x%02x" % (r, g, b) , (x,y))
-
 print("Generating Polygons")
 points = np.random.random((num_poi, 2))
 vor = Voronoi(points)
@@ -72,23 +77,20 @@ for _ in range(normalization):
     for region in vor.regions:
         if(len(region) == 0):
             continue
-        newx = 0
-        newy = 0
-        for point in region:
-            point = vor.vertices[point]
-            newx += point[0]
-            newy += point[1]
-        newx /= len(region)
-        newy /= len(region)
+        newx, newy = get_centroid(region)
         points.append(list((newx, newy)))
     vor = Voronoi(points)
 
 print("Rendering Polygons")
-for ridge in vor.ridge_vertices:
-    point1 = vor.vertices[ridge[0]]
-    point2 = vor.vertices[ridge[1]]
-    if -1 not in ridge:
-        w.create_line(cv(point1[0]), cv(point1[1], dim='y'), cv(point2[0] ), cv(point2[1], dim='y'))
+for region in vor.regions:
+    if(len(region) == 0):
+        continue
+    vertcoords = [vor.vertices[vert] for vert in region]
+    coords = [cv(coord) for coord in vertcoords for coord in coord]
+    x, y = get_centroid(region)
+    x, y = min(canvas_width - 1, cv(x)), min(canvas_height - 1, cv(y, dim=y))
+    r, g, b = get_color(heightmap[x][y], temperature_map[x][y], water_map[x][y])
+    w.create_polygon(*coords, activefill="#FFFF00", fill=("#%02x%02x%02x" % (r, g, b)))
 
 for point in vor.points:
     img.put("#%02x%02x%02x" % (255, 0, 0), (cv(point[0]), cv(point[1], dim='y')))
