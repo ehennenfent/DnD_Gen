@@ -7,7 +7,7 @@ from colorsys import hsv_to_rgb
 from random import randint
 import progressbar
 
-canvas_width = 2048
+canvas_width = 1024
 canvas_height = canvas_width
 freq = canvas_width / 2
 num_poi = int(256 * math.log(max(canvas_width, canvas_height), 2))
@@ -50,7 +50,6 @@ def get_centroid(_region):
 
 master = Tk()
 frame = Frame(master)
-frame.grid(row=0,column=0)
 frame.pack()
 w = Canvas(frame, width=canvas_width, height=canvas_height, scrollregion=(0,0,canvas_width,canvas_height))
 hbar=Scrollbar(frame,orient=HORIZONTAL)
@@ -60,10 +59,7 @@ vbar=Scrollbar(frame,orient=VERTICAL)
 vbar.pack(side=RIGHT,fill=Y)
 vbar.config(command=w.yview)
 w.config(xscrollcommand=hbar.set, yscrollcommand=vbar.set)
-w.pack(side=LEFT,expand=True, in_=frame)
-
-img = PhotoImage(width=canvas_width, height=canvas_height)
-w.create_image((canvas_width/2, canvas_height/2), image=img, state="normal")
+w.pack(side=LEFT, expand=True, in_=frame)
 
 print("Generating Simplex Noise")
 xbar = progressbar.ProgressBar()
@@ -102,8 +98,12 @@ for region in vor.regions:
     r, g, b = get_color(heightmap[x][y], temperature_map[x][y], water_map[x][y])
     w.create_polygon(*coords, activefill="#FFFF00", fill=("#%02x%02x%02x" % (r, g, b)))
 
-for point in vor.points:
-    img.put("#%02x%02x%02x" % (255, 0, 0), (cv(point[0]), cv(point[1], dim='y')))
+# img = PhotoImage(width=canvas_width, height=canvas_height)
+# master.keepalive = img
+# w.create_image((canvas_width/2, canvas_height/2), image=img, state="normal")
+#
+# for point in vor.points:
+#     img.put("#%02x%02x%02x" % (255, 0, 0), (cv(point[0]), cv(point[1], dim='y')))
 
 w.update()
 w.postscript(file="render.ps", colormode='color', width=canvas_width, height=canvas_height)
