@@ -88,7 +88,8 @@ for _ in range(normalization):
     vor = Voronoi(points)
 
 print("Rendering Polygons")
-for region in vor.regions:
+rbar = progressbar.ProgressBar()
+for region in rbar(vor.regions):
     if(len(region) == 0):
         continue
     vertcoords = [vor.vertices[vert] for vert in region]
