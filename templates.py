@@ -62,8 +62,7 @@ class WorldState(object):
         self.num_kingdoms = d6()
         self.cities_per_kingdom = d6()
         self.num_curois = d20()
-        self.num_city_states = max(0, randint(-3, 3))
-        self.num_city_states = 1 # changeme
+        self.num_city_states = max(0, randint(-2, 3))
 
     def generate_world(self):
         print("Generating Simplex Noise")

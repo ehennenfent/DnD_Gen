@@ -55,6 +55,9 @@ for index, cell in enumerate(world.get_cells()):
     if(cell.terrain == Terrain.CITY):
         cell.photo = ImageTk.PhotoImage(icons['tower'])
         w.create_image(cell.x, cell.y, image=cell.photo)
+    elif(cell.terrain == Terrain.MOUNTAIN):
+        cell.photo = ImageTk.PhotoImage(icons['mountain'])
+        w.create_image(cell.x, cell.y, image=cell.photo)
 
 w.update()
 w.postscript(file="render.ps", colormode='color', width=canvas_width, height=canvas_height)
