@@ -8,6 +8,12 @@ class Terrain(Enum):
     ICE = "Ice"
     DESERT = "Desert"
 
+class Color(Enum):
+    RED = "#FF0000"
+    GREEN = "#00FF00"
+    BLUE = "#0000FF"
+
+
 class Religion(Enum):
     LPANTH = "Loose Pantheon"
     TPANTH = "Tight Pantheon"

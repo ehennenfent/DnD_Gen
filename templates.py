@@ -8,6 +8,8 @@ import progressbar
 import util
 import math
 import itertools
+from dice import d6, d20
+from categories import Color, Terrain
 
 class Cell(object):
 
@@ -20,17 +22,28 @@ class Cell(object):
         self.x = x
         self.y = y
         self.corners = corners
+        self.owner = None
+        self.terrain = None
 
     def add_neighbor(self, neighbor_index):
         if neighbor_index not in self.neighbors:
             self.neighbors.append(neighbor_index)
+
+    def claim(self, claimant):
+        if self.owner is not None:
+            return False
+        self.owner = claimiant
+        return(True)
+
+    def set_terrain(self, terrain):
+        self.terrain = terrain
 
     def __repr__(self):
         return "Cell {p} at ({x}, {y})".format(p=self.point, x=self.x, y=self.y)
 
 class WorldState(object):
 
-    def __init__(self, canvas_width=2048, canvas_height=2048, water_threshhold=0.9, freezing_temp=0.1, normalization_steps=7):
+    def __init__(self, canvas_width=2048, canvas_height=2048):
         self.width = canvas_width
         self.height = canvas_height
 
@@ -41,9 +54,13 @@ class WorldState(object):
         self.cells = []
         self.regions = []
 
-        self.water_threshhold = water_threshhold
-        self.freezing_temp = freezing_temp
-        self.normalization_steps = normalization_steps
+        self.water_threshhold = 0.9
+        self.freezing_temp = 0.1
+        self.normalization_steps = 7
+        self.mountain_threshhold = 0.8
+        self.num_kingdoms = d6()
+        self.cities_per_kingdom = d6()
+        self.num_curois = d20()
 
     def simplex_wrapper(self, _x, _y, offset):
         return (snoise2((_x + offset) / (self.width / 2), (_y + offset) / (self.height / 2)) + 1) / 2
@@ -82,7 +99,9 @@ class WorldState(object):
 
         centroids = []
         index = 0
-        for region in self.voronoi.regions:
+        print("Building Cells")
+        rbar = progressbar.ProgressBar()
+        for region in rbar(self.voronoi.regions):
             if(len(region) == 0):
                 continue
             x, y = self.get_centroid(region)
@@ -90,6 +109,7 @@ class WorldState(object):
             x, y = self.cv(x), self.cv(y, dim='y')
             _x, _y = min(self.width-1, x), min(self.height-1, y)
             cell = Cell(index, x, y, self.height_map[_x][_y], self.temperature_map[_x][_y], self.water_map[_x][_y], corners=region)
+            cell.set_terrain(self.determine_terrain(cell))
             self.cells.append(cell)
             index += 1
 
@@ -105,14 +125,19 @@ class WorldState(object):
                 cell0.add_neighbor(pair[1])
                 self.adjacency_matrix[pair[0]][pair[1]] = util.dist(cell0.x, cell1.x, cell0.y, cell1.y)
 
-
+    def determine_terrain(self, cell):
+        if(cell.water > self.water_threshhold):
+            return Terrain.WATER
+        if(cell.height >= self.mountain_threshhold):
+            return Terrain.MOUNTAIN
+        return Terrain.PLAIN
 
     def get_color(self, height, temperature, water):
         if(temperature < self.freezing_temp):
             return 255, 255, 255
         if(water > self.water_threshhold):
             return 50, 50, 255
-        _r, _g, _b = hsv_to_rgb((50+60*height)/ 360, (temperature + 1)/2, 165/240)
+        _r, _g, _b = hsv_to_rgb((50+60*(1-height))/ 360, (temperature + 1)/2, 165/240)
         return int(_r*255), int(_g*255), int(_b*255)
 
     def get_centroid(self, _region):
@@ -134,13 +159,25 @@ class WorldState(object):
     def get_cell(self, pointindex):
         return self.cells[pointindex]
 
-    def get_cell_color(self, point_index):
-        cell = self.cells[point_index]
+    def get_point_color(self, cell_index):
+        return 255, 0, 255
+
+    def get_cell_color(self, cell_index):
+        cell = self.cells[cell_index]
         return self.get_color(cell.height, cell.temperature, cell.water)
 
     def get_cells(self):
         return self.cells
 
+class Kingdom(object):
+
+    def __init__(self, index):
+        self.territory = []
+        self.color = Color[index]
+        self.name = "Kingdom {0}".format(index)
+
+    def expand_territory(self, world):
+        pass
 
 class Settlement(object):
 
