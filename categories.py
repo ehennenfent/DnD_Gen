@@ -5,6 +5,8 @@ class Terrain(Enum):
     MOUNTAIN = "Mountains"
     WATER = "Water"
     CITY = "City"
+    ICE = "Ice"
+    DESERT = "Desert"
 
 class Religion(Enum):
     LPANTH = "Loose Pantheon"

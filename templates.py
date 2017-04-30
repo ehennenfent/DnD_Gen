@@ -5,13 +5,14 @@ from noise import snoise2
 from colorsys import hsv_to_rgb
 from random import randint
 import progressbar
-from util import dist
+import util
 import math
+import itertools
 
 class Cell(object):
 
-    def __init__(self, x, y, t, h, w, corners=None):
-        self.point = point
+    def __init__(self, index, x, y, h, t, w, corners=None):
+        self.index = index
         self.neighbors = []
         self.temperature = t
         self.height = h
@@ -19,6 +20,10 @@ class Cell(object):
         self.x = x
         self.y = y
         self.corners = corners
+
+    def add_neighbor(self, neighbor_index):
+        if neighbor_index not in self.neighbors:
+            self.neighbors.append(neighbor_index)
 
     def __repr__(self):
         return "Cell {p} at ({x}, {y})".format(p=self.point, x=self.x, y=self.y)
@@ -29,12 +34,12 @@ class WorldState(object):
         self.width = canvas_width
         self.height = canvas_height
 
-        self.heightmap, self.temperature_map, self.water_map = np.zeros((canvas_width, canvas_height)), np.zeros((canvas_width, canvas_height)), np.zeros((canvas_width, canvas_height))
+        self.height_map, self.temperature_map, self.water_map = np.zeros((canvas_width, canvas_height)), np.zeros((canvas_width, canvas_height)), np.zeros((canvas_width, canvas_height))
         self.height_offset, self.temperature_offset, self.water_offset = randint(0, canvas_width*128), randint(0, canvas_width*128), randint(0, canvas_width*128)
 
         self.num_points = int(256 * math.log(max(canvas_width, canvas_height), 2))
-        self.adjacency_matrix = np.zeros((self.num_points, self.num_points))
         self.cells = []
+        self.regions = []
 
         self.water_threshhold = water_threshhold
         self.freezing_temp = freezing_temp
@@ -57,13 +62,13 @@ class WorldState(object):
                 tScale = self.simplex_wrapper(x, y, self.temperature_offset)
                 wScale = self.simplex_wrapper(x, y, self.water_offset)
 
-                self.heightmap[x][y] = hScale
-                self.temperature_map[x][y] = min(1, max(0, (tScale*.6 + .3) - 0.5*(dist(0, y, 0, self.height/2)/(self.height))))
-                self.water_map[x][y] = min(1, wScale * .7 + (dist(x, y, self.width/2, self.height/2))/(self.width))
+                self.height_map[x][y] = hScale
+                self.temperature_map[x][y] = min(1, max(0, (tScale*.6 + .3) - 0.5*(util.dist(0, y, 0, self.height/2)/(self.height))))
+                self.water_map[x][y] = min(1, wScale * .7 + (util.dist(x, y, self.width/2, self.height/2))/(self.width))
 
         print("Generating Polygons")
-        self.points = np.random.random((self.num_points, 2))
-        self.voronoi = Voronoi(self.points)
+        points = np.random.random((self.num_points, 2))
+        self.voronoi = Voronoi(points)
 
         print("Normalizing Polygons")
         for _ in range(self.normalization_steps):
@@ -74,14 +79,32 @@ class WorldState(object):
                 newx, newy = self.get_centroid(region)
                 _points.append(list((newx, newy)))
             self.voronoi = Voronoi(_points)
-        self.points = _points
 
-        # triangles = Delaunay(self.points)
-        # abar = progressbar.ProgressBar()
-        # print("Building Adjacency Graph")
-        # for item in abar(triangles.simplices):
-        #     for pair in itertools.combinations(item, 2):
-        #         draw_line_between_points(pair[0], pair[1], points)
+        centroids = []
+        index = 0
+        for region in self.voronoi.regions:
+            if(len(region) == 0):
+                continue
+            x, y = self.get_centroid(region)
+            centroids.append([x, y])
+            x, y = self.cv(x), self.cv(y, dim='y')
+            _x, _y = min(self.width-1, x), min(self.height-1, y)
+            cell = Cell(index, x, y, self.height_map[_x][_y], self.temperature_map[_x][_y], self.water_map[_x][_y], corners=region)
+            self.cells.append(cell)
+            index += 1
+
+        self.adjacency_matrix = np.zeros((len(self.cells), len(self.cells)))
+
+        triangles = Delaunay(centroids)
+        abar = progressbar.ProgressBar()
+        print("Building Adjacency Graph")
+        for item in abar(triangles.simplices):
+            for pair in itertools.combinations(item, 2):
+                cell0 = self.cells[pair[0]]
+                cell1 = self.cells[pair[1]]
+                cell0.add_neighbor(pair[1])
+                self.adjacency_matrix[pair[0]][pair[1]] = util.dist(cell0.x, cell1.x, cell0.y, cell1.y)
+
 
 
     def get_color(self, height, temperature, water):
@@ -93,6 +116,8 @@ class WorldState(object):
         return int(_r*255), int(_g*255), int(_b*255)
 
     def get_centroid(self, _region):
+        if(len(_region) == 0):
+            return -1, -1
         _newx = 0
         _newy = 0
         for _point in _region:
@@ -103,14 +128,18 @@ class WorldState(object):
         _newy /= len(_region)
         return _newx, _newy
 
-    def get_regions(self):
-        return self.voronoi.regions
-
     def get_vertex(self, vertex_index):
         return self.voronoi.vertices[vertex_index]
 
-    def get_point_color(self, point_index):
-        return self.get_color(0.5, 0.5, 0.5)
+    def get_cell(self, pointindex):
+        return self.cells[pointindex]
+
+    def get_cell_color(self, point_index):
+        cell = self.cells[point_index]
+        return self.get_color(cell.height, cell.temperature, cell.water)
+
+    def get_cells(self):
+        return self.cells
 
 
 class Settlement(object):
