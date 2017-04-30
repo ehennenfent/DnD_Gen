@@ -13,6 +13,7 @@ class Color(Enum):
     GREEN = "#00FF00"
     BLUE = "#0000FF"
 
+colors = [Color.RED, Color.GREEN, Color.BLUE]
 
 class Religion(Enum):
     LPANTH = "Loose Pantheon"

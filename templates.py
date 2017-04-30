@@ -3,13 +3,13 @@ import numpy as np
 from scipy.spatial import Voronoi, Delaunay
 from noise import snoise2
 from colorsys import hsv_to_rgb
-from random import randint
+from random import randint, choice
 import progressbar
 import util
 import math
 import itertools
 from dice import d6, d20
-from categories import Color, Terrain
+from categories import colors, Terrain
 
 class Cell(object):
 
@@ -32,14 +32,14 @@ class Cell(object):
     def claim(self, claimant):
         if self.owner is not None:
             return False
-        self.owner = claimiant
+        self.owner = claimant
         return(True)
 
     def set_terrain(self, terrain):
         self.terrain = terrain
 
     def __repr__(self):
-        return "Cell {p} at ({x}, {y})".format(p=self.point, x=self.x, y=self.y)
+        return "Cell {p} at ({x}, {y})".format(p=self.index, x=self.x, y=self.y)
 
 class WorldState(object):
 
@@ -58,17 +58,12 @@ class WorldState(object):
         self.freezing_temp = 0.1
         self.normalization_steps = 7
         self.mountain_threshhold = 0.8
+        self.states = []
         self.num_kingdoms = d6()
         self.cities_per_kingdom = d6()
         self.num_curois = d20()
-
-    def simplex_wrapper(self, _x, _y, offset):
-        return (snoise2((_x + offset) / (self.width / 2), (_y + offset) / (self.height / 2)) + 1) / 2
-
-    def cv(self, float_val, dim='x'):
-        if(dim=='y'):
-            return max(0, min(self.height, int(float_val * self.height)))
-        return max(0, min(self.width, int(float_val * self.width)))
+        self.num_city_states = max(0, randint(-3, 3))
+        self.num_city_states = 1 # changeme
 
     def generate_world(self):
         print("Generating Simplex Noise")
@@ -123,7 +118,29 @@ class WorldState(object):
                 cell0 = self.cells[pair[0]]
                 cell1 = self.cells[pair[1]]
                 cell0.add_neighbor(pair[1])
+                cell1.add_neighbor(pair[0])
                 self.adjacency_matrix[pair[0]][pair[1]] = util.dist(cell0.x, cell1.x, cell0.y, cell1.y)
+                self.adjacency_matrix[pair[1]][pair[0]] = util.dist(cell0.x, cell1.x, cell0.y, cell1.y)
+
+        if(self.num_city_states > 0):
+            print("Placing city states")
+            for i in range(self.num_city_states):
+                cap = choice(self.cells)
+                while(cap.terrain == Terrain.WATER or cap.owner is not None):
+                    cap = choice(self.cells)
+                cap.set_terrain(Terrain.CITY)
+                cap.claim(i)
+                state = State(cap, i, self)
+                state.expand_territory()
+                self.states.append(state)
+
+    def simplex_wrapper(self, _x, _y, offset):
+        return (snoise2((_x + offset) / (self.width / 2), (_y + offset) / (self.height / 2)) + 1) / 2
+
+    def cv(self, float_val, dim='x'):
+        if(dim=='y'):
+            return max(0, min(self.height, int(float_val * self.height)))
+        return max(0, min(self.width, int(float_val * self.width)))
 
     def determine_terrain(self, cell):
         if(cell.water > self.water_threshhold):
@@ -169,15 +186,32 @@ class WorldState(object):
     def get_cells(self):
         return self.cells
 
-class Kingdom(object):
+class State(object):
 
-    def __init__(self, index):
-        self.territory = []
-        self.color = Color[index]
+    def __init__(self, capitol, index, world):
+        self.capitol = capitol
+        self.territory = [capitol.index]
+        self.index = index
+        self.color = colors[index]
         self.name = "Kingdom {0}".format(index)
+        self.world = world
 
-    def expand_territory(self, world):
-        pass
+    def expand_territory(self):
+        print(self.name,"holds",self.territory)
+        newterritory = []
+        for cellnum in self.territory:
+            cell = self.world.get_cell(cellnum)
+            print("Bordering", cell.neighbors)
+            for neighbor in cell.neighbors:
+                if neighbor not in self.territory:
+                    print("Claiming",neighbor)
+                    neighborcell = self.world.get_cell(neighbor)
+                    if(neighborcell.claim(self.index)):
+                        newterritory.append(neighbor)
+        self.territory = self.territory + newterritory
+
+    def __repr__(self):
+        return self.name + " has its capitol at cell" + str(self.capitol) + " and controls " + str(len(self.territory)) + " cells"
 
 class Settlement(object):
 

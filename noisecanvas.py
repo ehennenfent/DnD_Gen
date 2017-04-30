@@ -48,8 +48,12 @@ for index, cell in enumerate(rbar(world.get_cells())):
     w.create_polygon(*coords, activefill="#FFFF00", fill=("#%02x%02x%02x" % (r, g, b)))
 
 for index, cell in enumerate(world.get_cells()):
-    if(cell.terrain == Terrain.MOUNTAIN):
-        cell.photo = ImageTk.PhotoImage(icons['mountain'])
+    if(cell.owner is not None and cell.terrain is not Terrain.CITY):
+        draw_point(index)
+    # for neighbor in cell.neighbors:
+        # draw_line_between_points(index, neighbor)
+    if(cell.terrain == Terrain.CITY):
+        cell.photo = ImageTk.PhotoImage(icons['tower'])
         w.create_image(cell.x, cell.y, image=cell.photo)
 
 w.update()
