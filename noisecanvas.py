@@ -1,11 +1,12 @@
 from noise import snoise2
 from tkinter import *
 import numpy as np
-from scipy.spatial import Voronoi
+from scipy.spatial import Voronoi, Delaunay
 import math
 from colorsys import hsv_to_rgb
 from random import randint
 import progressbar
+import itertools
 
 canvas_width = 1024
 canvas_height = canvas_width
@@ -47,6 +48,17 @@ def get_centroid(_region):
     _newx /= len(_region)
     _newy /= len(_region)
     return _newx, _newy
+
+def draw_line_between_points(left_point, right_point, pointlist):
+    leftx, lefty = cv(pointlist[left_point][0]), cv(pointlist[left_point][1], dim='y')
+    rightx, righty = cv(pointlist[right_point][0]), cv(pointlist[right_point][1], dim='y')
+    w.create_line(leftx, lefty, rightx, righty)
+
+def draw_point(index, pointlist, radius=3):
+    x, y = cv(pointlist[index][0]), cv(pointlist[index][1], dim='y')
+    x, y = min(canvas_width-1, x), min(canvas_height-1, y)
+    r, g, b = get_color(heightmap[x][y], temperature_map[x][y], water_map[x][y])
+    w.create_oval(x-radius,y-radius,x+radius,y+radius, fill=("#%02x%02x%02x" % (r, g, b)))
 
 master = Tk()
 frame = Frame(master)
@@ -99,10 +111,21 @@ for region in rbar(vor.regions):
     r, g, b = get_color(heightmap[x][y], temperature_map[x][y], water_map[x][y])
     w.create_polygon(*coords, activefill="#FFFF00", fill=("#%02x%02x%02x" % (r, g, b)))
 
+for index, _point in enumerate(points):
+    draw_point(index, points)
+
+
+triangles = Delaunay(points)
+abar = progressbar.ProgressBar()
+print("Building Adjacency Graph")
+for item in abar(triangles.simplices):
+    for pair in itertools.combinations(item, 2):
+        draw_line_between_points(pair[0], pair[1], points)
+
 # img = PhotoImage(width=canvas_width, height=canvas_height)
 # master.keepalive = img
 # w.create_image((canvas_width/2, canvas_height/2), image=img, state="normal")
-#
+
 # for point in vor.points:
 #     img.put("#%02x%02x%02x" % (255, 0, 0), (cv(point[0]), cv(point[1], dim='y')))
 
