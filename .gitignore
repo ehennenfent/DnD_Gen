@@ -138,5 +138,5 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
-render.ps
-render.ps
+*.ps
+*.png
