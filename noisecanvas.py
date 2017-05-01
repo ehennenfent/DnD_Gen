@@ -1,6 +1,6 @@
 from tkinter import *
 import progressbar
-from categories import Terrain
+from categories import Terrain, Color
 from templates import WorldState
 from images import icons
 from PIL import ImageTk, Image
@@ -62,6 +62,12 @@ for path in world.roads:
         if(cell1 < 0 or cell2 < 0):
             continue
         draw_line_between_points(cell1, cell2)
+
+cornersize = canvas_width // 16
+w.create_polygon(0, 0, cornersize, 0, 0, cornersize, fill=Color.BROWN.value)
+w.create_polygon(canvas_width, 0, canvas_width - cornersize, 0, canvas_width, cornersize, fill=Color.BROWN.value)
+w.create_polygon(canvas_width, canvas_height, canvas_width - cornersize, canvas_height, canvas_width, canvas_height - cornersize, fill=Color.BROWN.value)
+w.create_polygon(0, canvas_height, cornersize, canvas_height, 0, canvas_height - cornersize, fill=Color.BROWN.value)
 
 w.update()
 w.postscript(file="render.ps", colormode='color', width=canvas_width, height=canvas_height)
