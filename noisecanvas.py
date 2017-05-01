@@ -31,27 +31,24 @@ def draw_line_between_points(left_point, right_point, canvas=w, world=world):
 def draw_point(index, radius=3, canvas=w, world=world):
     cell = world.get_cell(index)
     x, y = cell.x, cell.y
-    r, g, b = world.get_point_color(index)
-    canvas.create_oval(x-radius,y-radius,x+radius,y+radius, fill=("#%02x%02x%02x" % (r, g, b)))
+    color = world.get_point_color(index)
+    canvas.create_oval(x-radius,y-radius,x+radius,y+radius, fill=color)
 
 number_of_regions = len(world.get_cells())
 
 print("Rendering Polygons")
 rbar = progressbar.ProgressBar()
 for index, cell in enumerate(rbar(world.get_cells())):
-    if(len(cell.corners) == 0):
-        centroid -= 1
-        continue
-    vertcoords = [world.get_vertex(vert) for vert in cell.corners]
-    coords = [world.cv(coord) for coord in vertcoords for coord in coord]
+    vertcoords = [world.get_vertex(vert) for vert in cell.corners if vert != -1]
+    coords = [int(coord) for coord in vertcoords for coord in coord]
     r, g, b = world.get_cell_color(index)
     w.create_polygon(*coords, activefill="#FFFF00", fill=("#%02x%02x%02x" % (r, g, b)))
 
 for index, cell in enumerate(world.get_cells()):
     if(cell.owner is not None and cell.terrain is not Terrain.CITY):
         draw_point(index)
-    # for neighbor in cell.neighbors:
-        # draw_line_between_points(index, neighbor)
+    for neighbor in cell.neighbors:
+        draw_line_between_points(index, neighbor)
     if(cell.terrain == Terrain.CITY):
         cell.photo = ImageTk.PhotoImage(icons['tower'])
         w.create_image(cell.x, cell.y, image=cell.photo)
