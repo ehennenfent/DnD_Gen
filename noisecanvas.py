@@ -57,6 +57,12 @@ for index, cell in enumerate(world.get_cells()):
         cell.photo = ImageTk.PhotoImage(icons['mountain'])
         w.create_image(cell.x, cell.y, image=cell.photo)
 
+for path in world.roads:
+    for cell1, cell2 in zip(path[:-1], path[1:]):
+        if(cell1 < 0 or cell2 < 0):
+            continue
+        draw_line_between_points(cell1, cell2)
+
 w.update()
 w.postscript(file="render.ps", colormode='color', width=canvas_width, height=canvas_height)
 

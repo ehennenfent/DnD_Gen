@@ -1,6 +1,7 @@
 from random import choice
 import numpy as np
 from scipy.spatial import Voronoi, Delaunay, voronoi_plot_2d
+from scipy.sparse.csgraph import shortest_path
 from noise import snoise2
 from colorsys import hsv_to_rgb
 from random import randint, choice
@@ -12,6 +13,8 @@ from dice import d6, d20, d100
 from categories import colors, Terrain, religions, Icon
 import matplotlib.pyplot as plt
 import ghalton
+
+np.set_printoptions(precision=4)
 
 class Cell(object):
 
@@ -60,13 +63,14 @@ class WorldState(object):
         self.num_points = int(256 * math.log(max(canvas_width, canvas_height), 2))
         self.cells = []
         self.regions = []
+        self.roads = []
 
         self.water_threshhold = 0.9
         self.freezing_temp = 0.1
         self.normalization_steps = 7
         self.mountain_threshhold = 0.8
         self.states = []
-        self.num_kingdoms = 3 #d6()
+        self.num_kingdoms = 4 #d6()
         self.cities_per_kingdom = d6()
         self.num_curios = d20()
         self.num_city_states = 0#max(0, randint(-2, 3))
@@ -87,7 +91,8 @@ class WorldState(object):
 
         print("Generating Polygons")
         sequencer = ghalton.Halton(2)
-        points = sequencer.get(self.num_points + 100)[d100():]
+        # points = sequencer.get(self.num_points + 100)[d100():]
+        points = sequencer.get(self.num_points)
         points = [[int(point[0] * self.width), int(point[1] * self.height)] for point in points]
 
         self.voronoi = Voronoi(points)
@@ -112,8 +117,9 @@ class WorldState(object):
                 cell1 = self.cells[pair[1]]
                 cell0.add_neighbor(pair[1])
                 cell1.add_neighbor(pair[0])
-                self.adjacency_matrix[pair[0]][pair[1]] = util.dist(cell0.x, cell1.x, cell0.y, cell1.y)
-                self.adjacency_matrix[pair[1]][pair[0]] = util.dist(cell0.x, cell1.x, cell0.y, cell1.y)
+                d1 = util.dist(cell0.x, cell1.x, cell0.y, cell1.y)
+                self.adjacency_matrix[pair[0]][pair[1]] = d1
+                self.adjacency_matrix[pair[1]][pair[0]] = d1
 
         if(self.num_city_states > 0):
             print("Placing {0} city states".format(self.num_city_states))
@@ -152,6 +158,20 @@ class WorldState(object):
             unclaimed = iteration
             counter += 1
             bar.update(counter)
+
+        print("Calculating Shortest Paths")
+        dist_matrix, path_matrix = shortest_path(self.adjacency_matrix, return_predecessors=True)
+        print("Building roads between capitols")
+        capitols = [kingdom.capitol for kingdom in self.states]
+        for cap1, cap2 in itertools.combinations(capitols, 2):
+            path = []
+            start = cap1.index
+            while(start != cap2.index):
+                path.append(start)
+                start = path_matrix[cap2.index][start]
+            path.append(cap2.index)
+            self.roads.append(path)
+            # print("Path of length", len(path), "from", cap1, "to", cap2, ":", path)
 
 
     def simplex_wrapper(self, _x, _y, offset):
