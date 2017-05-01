@@ -70,6 +70,7 @@ class WorldState(object):
         self.freezing_temp = 0.1
         self.normalization_steps = 7
         self.mountain_threshhold = 0.8
+        self.distance_threshold = 1.5
         self.states = []
         self.num_kingdoms = d6()
         self.cities_per_kingdom = d6()
@@ -134,8 +135,8 @@ class WorldState(object):
                 d1 = util.terrain_dist(cell0, cell1)
                 distances.append(d1)
 
-        dist_mean, dist_std = np.mean(distances), np.std(distances)
-        print("Distances - mean:", dist_mean, "std:", dist_std)
+        self.dist_mean, self.dist_std = np.mean(distances), np.std(distances)
+        print("Distances - mean:", self.dist_mean, "std:", self.dist_std)
 
         print("Building Adjacency Matrix")
         abar = progressbar.ProgressBar()
@@ -145,7 +146,7 @@ class WorldState(object):
                 cell0.add_neighbor(pair[1])
                 cell1.add_neighbor(pair[0])
                 d1 = util.terrain_dist(cell0, cell1)
-                if(d1 > (dist_mean + 1.5*dist_std)):
+                if(d1 > (self.dist_mean + self.distance_threshold*self.dist_std)):
                     d1 = d1 ** 3
                 self.adjacency_matrix[pair[0]][pair[1]] = d1
                 self.adjacency_matrix[pair[1]][pair[0]] = d1
@@ -293,11 +294,9 @@ class WorldState(object):
 
     def get_weight_str(self, left, right):
         return str(int(self.adjacency_matrix[left][right]))
-        # out = str(self.adjacency_matrix[left][right])
-        # arr = out.split("e")
-        # if(len(arr) == 2):
-        #     return out[0][:3] + "e" + out[1]
-        # return out[0][:3]
+
+    def get_weighted_dist(self, celli1, celli2):
+        return self.adjacency_matrix[celli1][celli2]
 
 class State(object):
 
@@ -311,17 +310,19 @@ class State(object):
         self.cities = []
 
     def expand_territory(self):
-        # print(self.name,"holds",self.territory)
         newterritory = []
         for cellnum in self.territory:
             cell = self.world.get_cell(cellnum)
-            # print("Bordering", cell.neighbors)
             for neighbor in cell.neighbors:
                 if neighbor not in self.territory and cell.terrain is not Terrain.WATER:
-                    # print("Claiming",neighbor)
-                    neighborcell = self.world.get_cell(neighbor)
-                    if(neighborcell.claim(self.index)):
-                        newterritory.append(neighbor)
+                    dist = self.world.get_weighted_dist(cellnum, neighbor)
+                    should_continue = True
+                    if(dist > self.world.dist_mean + self.world.distance_threshold * self.world.dist_std):
+                        should_continue = choice([True, False, False, False, False])
+                    if(should_continue):
+                        neighborcell = self.world.get_cell(neighbor)
+                        if(neighborcell.claim(self.index)):
+                            newterritory.append(neighbor)
         self.territory = self.territory + newterritory
         if(len(newterritory) == 0):
             return False
