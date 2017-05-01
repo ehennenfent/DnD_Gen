@@ -10,11 +10,13 @@ import util
 import math
 import itertools
 from dice import d4, d6, d20, d100
-from categories import colors, Terrain, religions, Icon
+from categories import colors, Terrain, religions, Icon, organizations
 import matplotlib.pyplot as plt
 import ghalton
+from names import nameGen
 
 np.set_printoptions(precision=4)
+nameGenerator = nameGen()
 
 class Cell(object):
 
@@ -65,6 +67,7 @@ class WorldState(object):
         self.regions = []
         self.roads = []
         self.curiosities = []
+        self.societies = set([choice(organizations) for _ in range(d4() - 1)])
 
         self.water_threshhold = 0.9
         self.freezing_temp = 0.1
@@ -77,6 +80,39 @@ class WorldState(object):
         self.num_curios = int(math.log(max(canvas_width, canvas_height), 2)) + d20()
         self.num_city_states = max(0, randint(-2, 3))
         self.pantheon = choice(religions)
+
+        self.name = nameGenerator.get_place()
+
+    def __repr__(self):
+        kingdomstring = self.states[0].name
+        if(len(self.states) > 2):
+            for k in self.states[1:-1]:
+                kingdomstring += ", " + k.name
+            kingdomstring += " and " + self.states[-1].name
+        if(len(self.states) == 2):
+            kingdomstring += " and " + self.states[-1].name
+
+        out = "Behold the kingdom of {name}, home to the kingdoms of {kingdoms}\n\n".format(name=self.name.upper(), kingdoms=kingdomstring)
+
+        out += "World Size: %s cells\n" % len(self.cells)
+        out += "Religious State: %s\n" % self.pantheon.value
+        out += "Clandestine Organizations:\n"
+        for org in self.societies:
+            out += "\t" + org.value+ "\n"
+
+        out += "\n"
+        out += "Kingdoms:\n"
+        for kingdom in self.states:
+            out += str(kingdom) + "\n"
+            for city in kingdom.cities:
+                out += "\t\t" + str(city)
+
+        out += "\n"
+        out += "Points of Interest:\n"
+        for poi in self.curiosities:
+            out += "\t" + str(poi) + "\n"
+
+        return out
 
     def generate_world(self):
         print("Generating Simplex Noise")
@@ -163,6 +199,7 @@ class WorldState(object):
                 cap.set_icon(Icon.CSTATE)
                 cap.claim(i)
                 state = State(cap, i, self)
+                state.cities.append(Settlement(cap, state, state))
                 state.expand_territory()
                 self.states.append(state)
 
@@ -175,6 +212,7 @@ class WorldState(object):
             cap.set_icon(Icon.CAPITOL)
             cap.claim(len(self.states))
             state = State(cap, len(self.states), self)
+            state.cities.append(Settlement(cap, state, state))
             state.expand_territory()
             self.states.append(state)
 
@@ -207,20 +245,22 @@ class WorldState(object):
                 cell = self.cells[location]
                 if not util.eligibility(cell, claimant=kingdom.index):
                     continue
-                city = Settlement(cell, kingdom)
+                bigcity = Settlement(cell, kingdom.cities[0], kingdom)
                 cell.set_terrain(Terrain.CITY)
                 cell.set_icon(choice([Icon.CITY, Icon.CASTLE, Icon.CATHEDRAL]))
                 self.roads.append(self.path_between(kingdom.capitol.index, cell.index))
+                kingdom.cities.append(bigcity)
 
                 for subordinate_num in range(d4() - 1):
                     location = choice(self.dual_neighbors(cell.index))
                     subcell = self.cells[location]
                     if not util.eligibility(subcell, claimant=kingdom.index):
                         continue
-                    city = Settlement(subcell, kingdom)
+                    city = Settlement(subcell, bigcity, kingdom)
                     subcell.set_terrain(Terrain.CITY)
                     subcell.set_icon(Icon.VILLAGE)
                     self.roads.append(self.path_between(subcell.index, cell.index))
+                    kingdom.cities.append(city)
 
         print(util.histogram([cell.terrain for cell in self.cells]))
         print("Placing {0} Points of Interest".format(self.num_curios))
@@ -309,6 +349,9 @@ class State(object):
         self.world = world
         self.cities = []
 
+        self.ruler = nameGenerator.get_person()
+        self.name = nameGenerator.get_place()
+
     def expand_territory(self):
         newterritory = []
         for cellnum in self.territory:
@@ -329,15 +372,32 @@ class State(object):
         return True
 
     def __repr__(self):
-        return self.name + " has its capitol at cell" + str(self.capitol) + " and controls " + str(len(self.territory)) + " cells"
+        out = "\t" + self.name + ", led by " + self.ruler + ", has its capitol at cell (" + str(self.capitol.x) + "," + str(self.capitol.y) + ") and controls " + str(len(self.territory)) + " cells, " + str(len(self.cities)) + " cities"
+
+        return out
 
 class Settlement(object):
 
-    def __init__(self, cell, kingdom):
+    def __init__(self, cell, parent, kingdom):
         self.cell = cell
+        self.parent = parent
         self.kingdom = kingdom
+
+        self.ruler = nameGenerator.get_person()
+        self.name = nameGenerator.get_place()
+
+    def __repr__(self):
+        if(type(self.parent) == State):
+            return self.name + ", capitol of " + self.parent.name + ", located at (" + str(self.cell.x) + ", " + str(self.cell.y) + ")\n"
+        else:
+            return "\t" + self.name + ", dependant to " + self.parent.name + " in the kingdom of " + self.kingdom.name + ", located at (" + str(self.cell.x) + ", " + str(self.cell.y) + ")\n"
 
 class POI(object):
 
     def __init__(self, cell):
         self.cell = cell
+
+        self.name = nameGenerator.get_person()
+
+    def __repr__(self):
+        return "({x}, {y}) -- {name}".format(x=self.cell.x, y=self.cell.y, name=self.name)

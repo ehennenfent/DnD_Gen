@@ -6,7 +6,7 @@ from images import icons, update_icon_size
 from PIL import ImageTk, Image
 import util
 
-canvas_width = 1024
+canvas_width = 512
 canvas_height = canvas_width
 
 icons = update_icon_size(max(1, canvas_width // 1024))
@@ -78,8 +78,14 @@ w.create_polygon(0, canvas_height, cornersize, canvas_height, 0, canvas_height -
 w.update()
 w.postscript(file="render.ps", colormode='color', width=canvas_width, height=canvas_height)
 
+details = str(world)
+print(details)
+
 mainloop()
 
 print("Converting Image")
 i = Image.open('render.ps')
 i.save('render.png')
+
+with open("world.txt", 'w') as outputfile:
+    outputfile.write(details)
