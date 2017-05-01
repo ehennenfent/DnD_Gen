@@ -33,7 +33,17 @@ class Religion(Enum):
 
 religions = [c for c in Religion]
 
-class Governments(Enum):
+class Icon(Enum):
+    CASTLE = "castle"
+    CATHEDRAL = "cathedral"
+    CITY = "city"
+    VILLAGE = "cottage"
+    CAPITOL = "crown"
+    MONSTER = "dragon"
+    MOUNTAIN = "mountain"
+    CSTATE = "tower"
+
+class Government(Enum):
     AUTO = "Autocracy"
     BURO = "Bureaucracy"
     CONF = "Confederacy"

@@ -51,7 +51,7 @@ for index, cell in enumerate(world.get_cells()):
     # for neighbor in cell.neighbors:
     #     draw_line_between_points(index, neighbor)
     if(cell.terrain == Terrain.CITY):
-        cell.photo = ImageTk.PhotoImage(icons['tower'])
+        cell.photo = ImageTk.PhotoImage(icons[cell.icon.value])
         w.create_image(cell.x, cell.y, image=cell.photo)
     elif(cell.terrain == Terrain.MOUNTAIN):
         cell.photo = ImageTk.PhotoImage(icons['mountain'])

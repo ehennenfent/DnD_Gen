@@ -9,7 +9,7 @@ import util
 import math
 import itertools
 from dice import d6, d20, d100
-from categories import colors, Terrain, religions
+from categories import colors, Terrain, religions, Icon
 import matplotlib.pyplot as plt
 import ghalton
 
@@ -26,6 +26,7 @@ class Cell(object):
         self.corners = corners
         self.owner = None
         self.terrain = None
+        self.icon = None
         self.region_index = region_index
 
     def add_neighbor(self, neighbor_index):
@@ -40,6 +41,9 @@ class Cell(object):
 
     def set_terrain(self, terrain):
         self.terrain = terrain
+
+    def set_icon(self, icon):
+        self.icon = icon
 
     def __repr__(self):
         return "Cell {p} at ({x}, {y})".format(p=self.index, x=self.x, y=self.y)
@@ -118,6 +122,7 @@ class WorldState(object):
                 while(cap.terrain == Terrain.WATER or cap.owner is not None):
                     cap = choice(self.cells)
                 cap.set_terrain(Terrain.CITY)
+                cap.set_icon(Icon.CSTATE)
                 cap.claim(i)
                 state = State(cap, i, self)
                 state.expand_territory()
@@ -129,6 +134,7 @@ class WorldState(object):
             while(cap.terrain == Terrain.WATER or cap.owner is not None):
                 cap = choice(self.cells)
             cap.set_terrain(Terrain.CITY)
+            cap.set_icon(Icon.CAPITOL)
             cap.claim(len(self.states))
             state = State(cap, len(self.states), self)
             state.expand_territory()
