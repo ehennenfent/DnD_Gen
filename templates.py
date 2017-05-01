@@ -9,7 +9,7 @@ import progressbar
 import util
 import math
 import itertools
-from dice import d6, d20, d100
+from dice import d4, d6, d20, d100
 from categories import colors, Terrain, religions, Icon
 import matplotlib.pyplot as plt
 import ghalton
@@ -70,10 +70,10 @@ class WorldState(object):
         self.normalization_steps = 7
         self.mountain_threshhold = 0.8
         self.states = []
-        self.num_kingdoms = 4 #d6()
+        self.num_kingdoms = d6()
         self.cities_per_kingdom = d6()
         self.num_curios = d20()
-        self.num_city_states = 0#max(0, randint(-2, 3))
+        self.num_city_states = max(0, randint(-2, 3))
         self.pantheon = choice(religions)
 
     def generate_world(self):
@@ -159,20 +159,55 @@ class WorldState(object):
             counter += 1
             bar.update(counter)
 
+        print()
         print("Calculating Shortest Paths")
-        dist_matrix, path_matrix = shortest_path(self.adjacency_matrix, return_predecessors=True)
+        dist_matrix, self.path_matrix = shortest_path(self.adjacency_matrix, return_predecessors=True)
         print("Building roads between capitols")
         capitols = [kingdom.capitol for kingdom in self.states]
         for cap1, cap2 in itertools.combinations(capitols, 2):
-            path = []
-            start = cap1.index
-            while(start != cap2.index):
-                path.append(start)
-                start = path_matrix[cap2.index][start]
-            path.append(cap2.index)
+            path = self.path_between(cap1.index, cap2.index)
             self.roads.append(path)
-            # print("Path of length", len(path), "from", cap1, "to", cap2, ":", path)
 
+        print("Placing Cities")
+        for kingdom in self.states[self.num_city_states:]:
+            for citynum in range(self.cities_per_kingdom):
+                location = choice(kingdom.territory)
+                cell = self.cells[location]
+                if not util.eligibility(cell, claimant=kingdom.index):
+                    continue
+                city = Settlement(cell, kingdom)
+                cell.set_terrain(Terrain.CITY)
+                cell.set_icon(choice([Icon.CITY, Icon.CASTLE, Icon.CATHEDRAL]))
+                self.roads.append(self.path_between(kingdom.capitol.index, cell.index))
+
+                for subordinate_num in range(d4() - 1):
+                    location = choice(self.dual_neighbors(cell.index))
+                    subcell = self.cells[location]
+                    if not util.eligibility(subcell, claimant=kingdom.index):
+                        continue
+                    city = Settlement(subcell, kingdom)
+                    subcell.set_terrain(Terrain.CITY)
+                    subcell.set_icon(Icon.VILLAGE)
+                    self.roads.append(self.path_between(subcell.index, cell.index))
+
+        print("Placing Points of Interest")
+
+    def path_between(self, cell1, cell2):
+        path = []
+        start = cell1
+        while(start != cell2):
+            path.append(start)
+            start = self.path_matrix[cell2][start]
+        path.append(cell2)
+        return path
+
+    def dual_neighbors(self, cell_index):
+        out = []
+        for n_index in self.cells[cell_index].neighbors:
+            out.append(n_index)
+            for k_index in self.cells[n_index].neighbors:
+                out.append(k_index)
+        return out
 
     def simplex_wrapper(self, _x, _y, offset):
         return (snoise2((_x + offset) / (self.width / 2), (_y + offset) / (self.height / 2)) + 1) / 2
@@ -225,6 +260,7 @@ class State(object):
         self.color = colors[index]
         self.name = "Kingdom {0}".format(index)
         self.world = world
+        self.cities = []
 
     def expand_territory(self):
         # print(self.name,"holds",self.territory)
@@ -246,7 +282,13 @@ class State(object):
     def __repr__(self):
         return self.name + " has its capitol at cell" + str(self.capitol) + " and controls " + str(len(self.territory)) + " cells"
 
-# class Settlement(object):
-#
-#     def __init__(self):
-#         self.dickbutt = 0
+class Settlement(object):
+
+    def __init__(self, cell, kingdom):
+        self.cell = cell
+        self.kingdom = kingdom
+
+class POI(object):
+
+    def __init__(self, cell):
+        self.cell = cell

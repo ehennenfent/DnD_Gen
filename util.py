@@ -1,5 +1,6 @@
 import math
 from scipy.spatial import Voronoi, voronoi_plot_2d
+from categories import Terrain
 
 def dist(_x, _y, _X, _Y):
     return math.sqrt((_x - _X)**2+(_y - _Y)**2)
@@ -47,3 +48,14 @@ def produce_relaxed_points(points, num_iterations, world):
         vor = Voronoi(centroids)
         centroids = [get_centroid(region, vor.vertices) for region in vor.regions if (len(region) > 0)]
     return [k for k in centroids if check_magnitude(k, world)]
+
+def eligibility(cell, claimant=None):
+    if(cell.terrain is Terrain.WATER):
+        return False
+    if(claimant is not None):
+        if (cell.owner is not claimant and cell.owner is not None):
+            return False
+    if(cell.terrain is Terrain.CITY):
+        return False
+
+    return True
