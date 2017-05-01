@@ -46,11 +46,14 @@ for index, cell in enumerate(rbar(world.get_cells())):
     w.create_polygon(*coords, activefill="#FFFF00", fill=("#%02x%02x%02x" % (r, g, b)))
 
 for index, cell in enumerate(world.get_cells()):
-    if(cell.owner is not None and cell.terrain is Terrain.PLAIN):
+    if(cell.owner is not None and cell.terrain is Terrain.PLAIN and cell.icon is None):
         draw_point(index)
     # for neighbor in cell.neighbors:
     #     draw_line_between_points(index, neighbor)
     if(cell.terrain == Terrain.CITY):
+        cell.photo = ImageTk.PhotoImage(icons[cell.icon.value])
+        w.create_image(cell.x, cell.y, image=cell.photo)
+    elif(cell.icon is not None):
         cell.photo = ImageTk.PhotoImage(icons[cell.icon.value])
         w.create_image(cell.x, cell.y, image=cell.photo)
     elif(cell.terrain == Terrain.MOUNTAIN):

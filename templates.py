@@ -64,6 +64,7 @@ class WorldState(object):
         self.cells = []
         self.regions = []
         self.roads = []
+        self.curiosities = []
 
         self.water_threshhold = 0.9
         self.freezing_temp = 0.1
@@ -72,7 +73,7 @@ class WorldState(object):
         self.states = []
         self.num_kingdoms = d6()
         self.cities_per_kingdom = d6()
-        self.num_curios = d20()
+        self.num_curios = int(math.log(max(canvas_width, canvas_height), 2)) + d20()
         self.num_city_states = max(0, randint(-2, 3))
         self.pantheon = choice(religions)
 
@@ -190,7 +191,18 @@ class WorldState(object):
                     subcell.set_icon(Icon.VILLAGE)
                     self.roads.append(self.path_between(subcell.index, cell.index))
 
-        print("Placing Points of Interest")
+        print(util.histogram([cell.terrain for cell in self.cells]))
+        print("Placing {0} Points of Interest".format(self.num_curios))
+        for k in range(self.num_curios):
+            location = choice(self.cells)
+            if not util.eligibility(location):
+                print("Ineligible")
+                continue
+            poi = POI(location)
+            ic = choice([Icon.DRAGON, Icon.AXE, Icon.CRYPT, Icon.FOREST, Icon.GRIFFIN, Icon.HELMET, Icon.HYDRA, Icon.MANTICORE, Icon.OGRE, Icon.SWORDS])
+            print("Placing",ic.value)
+            location.set_icon(ic)
+            self.curiosities.append(poi)
 
     def path_between(self, cell1, cell2):
         path = []
