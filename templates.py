@@ -8,7 +8,7 @@ import progressbar
 import util
 import math
 import itertools
-from dice import d6, d20
+from dice import d6, d20, d100
 from categories import colors, Terrain, religions
 import matplotlib.pyplot as plt
 import ghalton
@@ -62,10 +62,10 @@ class WorldState(object):
         self.normalization_steps = 7
         self.mountain_threshhold = 0.8
         self.states = []
-        self.num_kingdoms = d6()
+        self.num_kingdoms = 3 #d6()
         self.cities_per_kingdom = d6()
         self.num_curios = d20()
-        self.num_city_states = max(0, randint(-2, 3))
+        self.num_city_states = 0#max(0, randint(-2, 3))
         self.pantheon = choice(religions)
 
     def generate_world(self):
@@ -82,62 +82,11 @@ class WorldState(object):
                 self.water_map[x][y] = min(1, wScale * .7 + (util.dist(x, y, self.width/2, self.height/2))/(self.width))
 
         print("Generating Polygons")
-        # points = np.zeros((self.num_points, 2))
-        # points[:,0] = np.random.randint(0, self.width, self.num_points)
-        # points[:,1] = np.random.randint(0, self.height, self.num_points)
         sequencer = ghalton.Halton(2)
-        points = sequencer.get(self.num_points)
+        points = sequencer.get(self.num_points + 100)[d100():]
         points = [[int(point[0] * self.width), int(point[1] * self.height)] for point in points]
 
         self.voronoi = Voronoi(points)
-
-        # print("Normalizing Polygons")
-        # for _ in range(self.normalization_steps):
-        #     _points = []
-        #     for region in self.voronoi.regions:
-        #         if(len(region) == 0):
-        #             continue
-        #         newx, newy = util.get_centroid(region, self.voronoi.vertices)
-        #         if util.check_magnitude([newx, newy]):
-        #             _points.append(list((newx, newy)))
-        #     self.voronoi = Voronoi(_points)
-
-        # print("Stripping outer polygons")
-        # points = []
-        # for point in self.voronoi.points:
-        #     if(util.check_magnitude(point)):
-        #         points.append(point)
-        # self.voronoi = Voronoi(points)
-        # print("Relaxing")
-        # points = util.produce_relaxed_points(points, 5, self)
-        # for point in points:
-        #     print("   ", point)
-        # self.voronoi = Voronoi(points)
-        # voronoi_plot_2d(self.voronoi)
-        # plt.show()
-        # print("Voronoi Vertices:")
-        # for vertex in self.voronoi.vertices:
-        #     print("   ", vertex)
-
-
-        # self.vertices = []
-        # for vertex in self.voronoi.vertices:
-        #     self.vertices.append(util.massage_to_canvas(vertex, self))
-
-        # centroids = []
-        # index = 0
-        # print("Building Cells")
-        # rbar = progressbar.ProgressBar()
-        # for region in rbar(self.voronoi.regions):
-        #     if(len(region) == 0):
-        #         continue
-        #     x, y = util.get_centroid(region, self.vertices)
-        #     # centroids.append([x, y])
-        #     x, y = int(x), int(y)
-        #     cell = Cell(index, x, y, self.height_map[x][y], self.temperature_map[x][y], self.water_map[x][y], corners=region)
-        #     cell.set_terrain(self.determine_terrain(cell))
-        #     self.cells.append(cell)
-        #     index += 1
 
         print("Building Cells")
         rbar = progressbar.ProgressBar()
@@ -148,50 +97,55 @@ class WorldState(object):
             cell.set_terrain(self.determine_terrain(cell))
             self.cells.append(cell)
 
-        # for point in self.voronoi.points:
-        #     print(point, util.dist(point[0], point[1], 0, 0))
+        self.adjacency_matrix = np.zeros((len(self.cells), len(self.cells)))
 
-        # self.adjacency_matrix = np.zeros((len(self.cells), len(self.cells)))
-        #
-        # triangles = Delaunay(centroids)
-        # abar = progressbar.ProgressBar()
-        # print("Building Adjacency Graph")
-        # for item in abar(triangles.simplices):
-        #     for pair in itertools.combinations(item, 2):
-        #         cell0 = self.cells[pair[0]]
-        #         cell1 = self.cells[pair[1]]
-        #         cell0.add_neighbor(pair[1])
-        #         cell1.add_neighbor(pair[0])
-        #         self.adjacency_matrix[pair[0]][pair[1]] = util.dist(cell0.x, cell1.x, cell0.y, cell1.y)
-        #         self.adjacency_matrix[pair[1]][pair[0]] = util.dist(cell0.x, cell1.x, cell0.y, cell1.y)
+        triangles = Delaunay(self.voronoi.points)
+        abar = progressbar.ProgressBar()
+        print("Building Adjacency Graph")
+        for item in abar(triangles.simplices):
+            for pair in itertools.combinations(item, 2):
+                cell0 = self.cells[pair[0]]
+                cell1 = self.cells[pair[1]]
+                cell0.add_neighbor(pair[1])
+                cell1.add_neighbor(pair[0])
+                self.adjacency_matrix[pair[0]][pair[1]] = util.dist(cell0.x, cell1.x, cell0.y, cell1.y)
+                self.adjacency_matrix[pair[1]][pair[0]] = util.dist(cell0.x, cell1.x, cell0.y, cell1.y)
 
-        # if(self.num_city_states > 0):
-        #     print("Placing {0} city states".format(self.num_city_states))
-        #     for i in range(self.num_city_states):
-        #         cap = choice(self.cells)
-        #         while(cap.terrain == Terrain.WATER or cap.owner is not None):
-        #             cap = choice(self.cells)
-        #         cap.set_terrain(Terrain.CITY)
-        #         cap.claim(i)
-        #         state = State(cap, i, self)
-        #         state.expand_territory()
-        #         self.states.append(state)
-        #
-        # print("Creating {0} Kingdoms".format(self.num_kingdoms))
-        # for i in range(self.num_kingdoms):
-        #     cap = choice(self.cells)
-        #     while(cap.terrain == Terrain.WATER or cap.owner is not None):
-        #         cap = choice(self.cells)
-        #     cap.set_terrain(Terrain.CITY)
-        #     cap.claim(len(self.states))
-        #     state = State(cap, len(self.states), self)
-        #     state.expand_territory()
-        #     self.states.append(state)
-        #
-        # print("Growing Kingdoms")
-        # for i in range(25):
-        #     for kingdom in self.states[self.num_city_states:]:
-        #         kingdom.expand_territory()
+        if(self.num_city_states > 0):
+            print("Placing {0} city states".format(self.num_city_states))
+            for i in range(self.num_city_states):
+                cap = choice(self.cells)
+                while(cap.terrain == Terrain.WATER or cap.owner is not None):
+                    cap = choice(self.cells)
+                cap.set_terrain(Terrain.CITY)
+                cap.claim(i)
+                state = State(cap, i, self)
+                state.expand_territory()
+                self.states.append(state)
+
+        print("Creating {0} Kingdoms".format(self.num_kingdoms))
+        for i in range(self.num_kingdoms):
+            cap = choice(self.cells)
+            while(cap.terrain == Terrain.WATER or cap.owner is not None):
+                cap = choice(self.cells)
+            cap.set_terrain(Terrain.CITY)
+            cap.claim(len(self.states))
+            state = State(cap, len(self.states), self)
+            state.expand_territory()
+            self.states.append(state)
+
+        print("Growing Kingdoms")
+        unclaimed = True
+        bar = progressbar.ProgressBar(max_value=progressbar.UnknownLength)
+        counter = 0
+        while(unclaimed):
+            iteration = False
+            for kingdom in self.states[self.num_city_states:]:
+                res = kingdom.expand_territory()
+                iteration = iteration or res
+            unclaimed = iteration
+            counter += 1
+            bar.update(counter)
 
 
     def simplex_wrapper(self, _x, _y, offset):
@@ -236,36 +190,36 @@ class WorldState(object):
     def get_cells(self):
         return self.cells
 
-# class State(object):
-#
-#     def __init__(self, capitol, index, world):
-#         self.capitol = capitol
-#         self.territory = [capitol.index]
-#         self.index = index
-#         self.color = colors[index]
-#         self.name = "Kingdom {0}".format(index)
-#         self.world = world
-#
-#     def expand_territory(self):
-#         # print(self.name,"holds",self.territory)
-#         newterritory = []
-#         for cellnum in self.territory:
-#             cell = self.world.get_cell(cellnum)
-#             # print("Bordering", cell.neighbors)
-#             for neighbor in cell.neighbors:
-#                 if neighbor not in self.territory:
-#                     # print("Claiming",neighbor)
-#                     neighborcell = self.world.get_cell(neighbor)
-#                     if(neighborcell.claim(self.index)):
-#                         newterritory.append(neighbor)
-#         self.territory = self.territory + newterritory
-#         if(len(newterritory) == 0):
-#             return False
-#         return True
-#
-#     def __repr__(self):
-#         return self.name + " has its capitol at cell" + str(self.capitol) + " and controls " + str(len(self.territory)) + " cells"
-#
+class State(object):
+
+    def __init__(self, capitol, index, world):
+        self.capitol = capitol
+        self.territory = [capitol.index]
+        self.index = index
+        self.color = colors[index]
+        self.name = "Kingdom {0}".format(index)
+        self.world = world
+
+    def expand_territory(self):
+        # print(self.name,"holds",self.territory)
+        newterritory = []
+        for cellnum in self.territory:
+            cell = self.world.get_cell(cellnum)
+            # print("Bordering", cell.neighbors)
+            for neighbor in cell.neighbors:
+                if neighbor not in self.territory and cell.terrain is not Terrain.WATER:
+                    # print("Claiming",neighbor)
+                    neighborcell = self.world.get_cell(neighbor)
+                    if(neighborcell.claim(self.index)):
+                        newterritory.append(neighbor)
+        self.territory = self.territory + newterritory
+        if(len(newterritory) == 0):
+            return False
+        return True
+
+    def __repr__(self):
+        return self.name + " has its capitol at cell" + str(self.capitol) + " and controls " + str(len(self.territory)) + " cells"
+
 # class Settlement(object):
 #
 #     def __init__(self):

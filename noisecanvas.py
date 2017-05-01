@@ -3,7 +3,8 @@ import progressbar
 from categories import Terrain
 from templates import WorldState
 from images import icons
-from PIL import ImageTk
+from PIL import ImageTk, Image
+import util
 
 canvas_width = 1024
 canvas_height = canvas_width
@@ -45,10 +46,10 @@ for index, cell in enumerate(rbar(world.get_cells())):
     w.create_polygon(*coords, activefill="#FFFF00", fill=("#%02x%02x%02x" % (r, g, b)))
 
 for index, cell in enumerate(world.get_cells()):
-    if(cell.owner is not None and cell.terrain is not Terrain.CITY):
+    if(cell.owner is not None and cell.terrain is Terrain.PLAIN):
         draw_point(index)
-    for neighbor in cell.neighbors:
-        draw_line_between_points(index, neighbor)
+    # for neighbor in cell.neighbors:
+    #     draw_line_between_points(index, neighbor)
     if(cell.terrain == Terrain.CITY):
         cell.photo = ImageTk.PhotoImage(icons['tower'])
         w.create_image(cell.x, cell.y, image=cell.photo)
@@ -60,3 +61,7 @@ w.update()
 w.postscript(file="render.ps", colormode='color', width=canvas_width, height=canvas_height)
 
 mainloop()
+
+print("Converting Image")
+i = Image.open('render.ps')
+i.save('render.png')
