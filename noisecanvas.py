@@ -2,12 +2,14 @@ from tkinter import *
 import progressbar
 from categories import Terrain, Color
 from templates import WorldState
-from images import icons
+from images import icons, update_icon_size
 from PIL import ImageTk, Image
 import util
 
 canvas_width = 1024
 canvas_height = canvas_width
+
+icons = update_icon_size(max(1, canvas_width // 1024))
 
 world = WorldState(canvas_width, canvas_height)
 world.generate_world()
