@@ -51,14 +51,11 @@ def produce_relaxed_points(points, num_iterations, world):
 
 def eligibility(cell, claimant=None):
     if(cell.terrain is Terrain.WATER):
-        print("Attempting to Place in Water")
         return False
     if(claimant is not None):
         if (cell.owner is not claimant and cell.owner is not None):
-            print("Cell is already claimed")
             return False
     if(cell.terrain is Terrain.CITY):
-        print("This is already a city")
         return False
 
     return True
@@ -72,3 +69,9 @@ def histogram(iterable_thing):
         results[thing] += 1
 
     return results
+
+def terrain_dist(cell0, cell1):
+    d = dist(cell0.x, cell0.y, cell1.x, cell1.y)
+    if(cell0.terrain == Terrain.MOUNTAIN or cell1.terrain == Terrain.MOUNTAIN):
+        d *= 2
+    return  d

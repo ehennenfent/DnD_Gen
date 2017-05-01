@@ -28,6 +28,7 @@ w.pack(side=LEFT, expand=True, in_=frame)
 def draw_line_between_points(left_point, right_point, canvas=w, world=world):
     left, right = world.get_cell(left_point), world.get_cell(right_point)
     canvas.create_line(left.x, left.y, right.x, right.y)
+    # canvas.create_text((left.x + right.x)/2, (left.y + right.y)/2, text=world.get_weight_str(left_point, right_point))
 
 def draw_point(index, radius=3, canvas=w, world=world):
     cell = world.get_cell(index)
@@ -49,7 +50,7 @@ for index, cell in enumerate(world.get_cells()):
     if(cell.owner is not None and cell.terrain is Terrain.PLAIN and cell.icon is None):
         draw_point(index)
     # for neighbor in cell.neighbors:
-    #     draw_line_between_points(index, neighbor)
+        # draw_line_between_points(index, neighbor)
     if(cell.terrain == Terrain.CITY):
         cell.photo = ImageTk.PhotoImage(icons[cell.icon.value])
         w.create_image(cell.x, cell.y, image=cell.photo)

@@ -92,8 +92,7 @@ class WorldState(object):
 
         print("Generating Polygons")
         sequencer = ghalton.Halton(2)
-        # points = sequencer.get(self.num_points + 100)[d100():]
-        points = sequencer.get(self.num_points)
+        points = sequencer.get(self.num_points + 100)[d100():]
         points = [[int(point[0] * self.width), int(point[1] * self.height)] for point in points]
 
         self.voronoi = Voronoi(points)
@@ -107,20 +106,51 @@ class WorldState(object):
             cell.set_terrain(self.determine_terrain(cell))
             self.cells.append(cell)
 
-        self.adjacency_matrix = np.zeros((len(self.cells), len(self.cells)))
+        print("Sorting out Water Cells")
+        dry_cells = []
+        wet_cells = []
+        for cell in self.cells:
+            if(cell.terrain is Terrain.WATER):
+                wet_cells.append(cell)
+            else:
+                cell.index = len(dry_cells)
+                dry_cells.append(cell)
+        num_dry_cells = len(dry_cells)
+        for i, wet_cell in enumerate(wet_cells):
+            wet_cell.index = i + num_dry_cells
+        self.cells = dry_cells + wet_cells
 
-        triangles = Delaunay(self.voronoi.points)
+        self.adjacency_matrix = np.zeros((num_dry_cells, num_dry_cells))
+
+        calc_over = [[cell.x, cell.y] for cell in self.cells[:num_dry_cells]]
+        print("Running Delaunay's Algorithm")
+        triangles = Delaunay(calc_over)
         abar = progressbar.ProgressBar()
-        print("Building Adjacency Graph")
+        print("Calculating Distances")
+        distances = []
         for item in abar(triangles.simplices):
             for pair in itertools.combinations(item, 2):
-                cell0 = self.cells[pair[0]]
-                cell1 = self.cells[pair[1]]
+                cell0, cell1 = self.cells[pair[0]], self.cells[pair[1]]
+                d1 = util.terrain_dist(cell0, cell1)
+                distances.append(d1)
+
+        dist_mean, dist_std = np.mean(distances), np.std(distances)
+        print("Distances - mean:", dist_mean, "std:", dist_std)
+
+        print("Building Adjacency Matrix")
+        abar = progressbar.ProgressBar()
+        for item in abar(triangles.simplices):
+            for pair in itertools.combinations(item, 2):
+                cell0, cell1 = self.cells[pair[0]], self.cells[pair[1]]
                 cell0.add_neighbor(pair[1])
                 cell1.add_neighbor(pair[0])
-                d1 = util.dist(cell0.x, cell1.x, cell0.y, cell1.y)
+                d1 = util.terrain_dist(cell0, cell1)
+                if(d1 > (dist_mean + 1.5*dist_std)):
+                    d1 = d1 ** 3
                 self.adjacency_matrix[pair[0]][pair[1]] = d1
                 self.adjacency_matrix[pair[1]][pair[0]] = d1
+
+
 
         if(self.num_city_states > 0):
             print("Placing {0} city states".format(self.num_city_states))
@@ -196,11 +226,9 @@ class WorldState(object):
         for k in range(self.num_curios):
             location = choice(self.cells)
             if not util.eligibility(location):
-                print("Ineligible")
                 continue
             poi = POI(location)
             ic = choice([Icon.DRAGON, Icon.AXE, Icon.CRYPT, Icon.FOREST, Icon.GRIFFIN, Icon.HELMET, Icon.HYDRA, Icon.MANTICORE, Icon.OGRE, Icon.SWORDS])
-            print("Placing",ic.value)
             location.set_icon(ic)
             self.curiosities.append(poi)
 
@@ -262,6 +290,14 @@ class WorldState(object):
 
     def get_cells(self):
         return self.cells
+
+    def get_weight_str(self, left, right):
+        return str(int(self.adjacency_matrix[left][right]))
+        # out = str(self.adjacency_matrix[left][right])
+        # arr = out.split("e")
+        # if(len(arr) == 2):
+        #     return out[0][:3] + "e" + out[1]
+        # return out[0][:3]
 
 class State(object):
 
