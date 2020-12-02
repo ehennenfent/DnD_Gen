@@ -6,8 +6,8 @@ from images import icons, update_icon_size
 from PIL import ImageTk, Image
 import util
 
-canvas_width = 512
-canvas_height = canvas_width
+canvas_width = 2048
+canvas_height = int(canvas_width * (9./16.))
 
 icons = update_icon_size(max(1, canvas_width // 1024))
 
@@ -49,8 +49,8 @@ for index, cell in enumerate(rbar(world.get_cells())):
     w.create_polygon(*coords, activefill="#FFFF00", fill=("#%02x%02x%02x" % (r, g, b)))
 
 for index, cell in enumerate(world.get_cells()):
-    if(cell.owner is not None and cell.terrain is Terrain.PLAIN and cell.icon is None):
-        draw_point(index)
+    # if(cell.owner is not None and cell.terrain is Terrain.PLAIN and cell.icon is None):
+    #     draw_point(index)
     # for neighbor in cell.neighbors:
         # draw_line_between_points(index, neighbor)
     if(cell.terrain == Terrain.CITY):

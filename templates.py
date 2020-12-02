@@ -263,15 +263,15 @@ class WorldState(object):
                     kingdom.cities.append(city)
 
         print(util.histogram([cell.terrain for cell in self.cells]))
-        print("Placing {0} Points of Interest".format(self.num_curios))
-        for k in range(self.num_curios):
-            location = choice(self.cells)
-            if not util.eligibility(location):
-                continue
-            poi = POI(location)
-            ic = choice([Icon.DRAGON, Icon.AXE, Icon.CRYPT, Icon.FOREST, Icon.GRIFFIN, Icon.HELMET, Icon.HYDRA, Icon.MANTICORE, Icon.OGRE, Icon.SWORDS])
-            location.set_icon(ic)
-            self.curiosities.append(poi)
+        # print("Placing {0} Points of Interest".format(self.num_curios))
+        # for k in range(self.num_curios):
+        #     location = choice(self.cells)
+        #     if not util.eligibility(location):
+        #         continue
+        #     poi = POI(location)
+        #     ic = choice([Icon.DRAGON, Icon.AXE, Icon.CRYPT, Icon.FOREST, Icon.GRIFFIN, Icon.HELMET, Icon.HYDRA, Icon.MANTICORE, Icon.OGRE, Icon.SWORDS])
+        #     location.set_icon(ic)
+        #     self.curiosities.append(poi)
 
     def path_between(self, cell1, cell2):
         path = []
