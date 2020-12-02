@@ -1,17 +1,17 @@
 from random import choice
 
-class nameGen(object):
 
+class nameGen(object):
     def __init__(self):
         self.people = []
         self.places = []
 
-        with open('people.txt', 'r') as people_file:
+        with open("people.txt", "r") as people_file:
             for line in people_file:
                 self.people.append(line.strip())
         print("Read %s people" % len(self.people))
 
-        with open('places.txt', 'r') as places_file:
+        with open("places.txt", "r") as places_file:
             for line in places_file:
                 self.places.append(line.strip())
         print("Read %s places" % len(self.places))

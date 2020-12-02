@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class Terrain(Enum):
     PLAIN = "Plains"
     MOUNTAIN = "Mountains"
@@ -7,6 +8,7 @@ class Terrain(Enum):
     CITY = "City"
     ICE = "Ice"
     DESERT = "Desert"
+
 
 class Color(Enum):
     RED = "#FF0000"
@@ -20,7 +22,9 @@ class Color(Enum):
     PINK = "#FFC0CB"
     SILVER = "#778899"
 
+
 colors = [c for c in Color]
+
 
 class Religion(Enum):
     LPANTH = "Loose Pantheon"
@@ -31,7 +35,9 @@ class Religion(Enum):
     ANIM = "Animism"
     NONE = "Godless"
 
+
 religions = [c for c in Religion]
+
 
 class Icon(Enum):
     CASTLE = "castle"
@@ -51,6 +57,7 @@ class Icon(Enum):
     SWORDS = "swords"
     MOUNTAIN = "mountain"
     CSTATE = "tower"
+
 
 class Government(Enum):
     AUTO = "Autocracy"
@@ -74,7 +81,9 @@ class Government(Enum):
     SATR = "Satrapy"
     THEO = "Theocracy"
 
+
 governments = [government for government in Government]
+
 
 class Ruler(Enum):
     POLITICAL = "Political"
@@ -85,7 +94,9 @@ class Ruler(Enum):
     WISDOM = "Wise"
     NONE = "Anarchy"
 
+
 rulers = [ruler for ruler in Ruler]
+
 
 class Organization(Enum):
     THIEVES = "Thieves Guild"
@@ -111,5 +122,6 @@ class Organization(Enum):
     KNIGHT = "Knights of Hromada"
     POLITIC = "National Action Party"
     MINING = "Mining Interests Alliance"
+
 
 organizations = [org for org in Organization]

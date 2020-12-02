@@ -15,12 +15,17 @@ num_points = 64
 master = Tk()
 frame = Frame(master)
 frame.pack()
-w = Canvas(frame, width=canvas_width, height=canvas_height, scrollregion=(0,0,canvas_width,canvas_height))
-hbar=Scrollbar(frame,orient=HORIZONTAL)
-hbar.pack(side=BOTTOM,fill=X)
+w = Canvas(
+    frame,
+    width=canvas_width,
+    height=canvas_height,
+    scrollregion=(0, 0, canvas_width, canvas_height),
+)
+hbar = Scrollbar(frame, orient=HORIZONTAL)
+hbar.pack(side=BOTTOM, fill=X)
 hbar.config(command=w.xview)
-vbar=Scrollbar(frame,orient=VERTICAL)
-vbar.pack(side=RIGHT,fill=Y)
+vbar = Scrollbar(frame, orient=VERTICAL)
+vbar.pack(side=RIGHT, fill=Y)
 vbar.config(command=w.yview)
 w.config(xscrollcommand=hbar.set, yscrollcommand=vbar.set)
 w.pack(side=LEFT, expand=True, in_=frame)
@@ -52,6 +57,8 @@ plt.show()
 #     w.create_polygon(*coords, activefill="#FFFF00", fill=("#%02x%02x%02x" % (r, g, b)))
 
 w.update()
-w.postscript(file="test.ps", colormode='color', width=canvas_width, height=canvas_height)
+w.postscript(
+    file="test.ps", colormode="color", width=canvas_width, height=canvas_height
+)
 
 mainloop()
