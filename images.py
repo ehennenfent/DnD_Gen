@@ -1,16 +1,20 @@
 from PIL import Image
 from glob import glob
+from pathlib import Path
 import progressbar
 
 icons = {}
 iconsize = 16
+
+def convert_str_path(i):
+    return str(Path(i).name).replace(".png", "")
 
 print("Importing icons")
 ibar = progressbar.ProgressBar()
 for imagefile in ibar(glob('icon/*.png')):
     image = Image.open(imagefile)
     image = image.resize((iconsize, iconsize))
-    icons[imagefile.replace('.png','').replace('icon/', '')] = image
+    icons[convert_str_path(imagefile)] = image
 
 def update_icon_size(newsize):
     global icons
@@ -22,5 +26,5 @@ def update_icon_size(newsize):
     for imagefile in ibar(glob('icon/*.png')):
         image = Image.open(imagefile)
         image = image.resize((iconsize * newsize, iconsize * newsize))
-        icons[imagefile.replace('.png','').replace('icon/', '')] = image
+        icons[convert_str_path(imagefile)] = image
     return icons
